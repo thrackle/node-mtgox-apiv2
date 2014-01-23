@@ -48,9 +48,14 @@ function MtGoxClient(key, secret, currency) {
     if (typeof callback == "function") {
       request(options, function (err, res, body) {
         var json;
-      
-        if (err  || !res || res.statusCode != 200) {
-          return callback(err || new Error("Request failed"));
+
+        if (err) return callback(err)
+        if (!res) return callback(new Error("Request failed"))
+
+        if (res.statusCode != 200) {
+          var msg
+          try { msg = JSON.parse(res.body).error } catch (parseErr) {}
+          return callback(new Error(msg || 'Request failed for unknown reasons.'))
         }
 
         // This try-catch handles cases where Mt.Gox returns 200 but responds with HTML,
@@ -61,10 +66,10 @@ function MtGoxClient(key, secret, currency) {
           if (body.indexOf("<") != -1) {
             return callback(new Error("MtGox responded with html:\n" + body));
           } else {
-            return callback(new Error("JSON parse error: " + err));  
+            return callback(new Error("JSON parse error: " + err));
           }
         }
-        
+
         callback(null, json);
       });
     } else {
